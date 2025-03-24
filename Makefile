@@ -10,5 +10,7 @@ audit:
 	go vet ./...
 	go tool staticcheck ./...
 	go tool govulncheck
+build:
+	go build -v -ldflags "-s -w" -o bin/main cmd/http/main.go
 
 .PHONY: migrateup migratedown sqlc test audit

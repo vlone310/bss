@@ -1,0 +1,13 @@
+name: "Setup Go and Dependencies"
+description: "Sets up Go and downloads dependencies."
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Go 1.24
+      uses: actions/setup-go@v5.4.0
+      with:
+        go-version: 1.24
+      id: go
+    - name: Get dependencies
+      shell: bash
+      run: go mod download
