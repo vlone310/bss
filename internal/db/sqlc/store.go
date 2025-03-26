@@ -3,24 +3,54 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+	Connect(ctx context.Context, dbSource string) error
+	Close()
+}
+
+type SQLStore struct {
 	*Queries
 	db *pgxpool.Pool
 }
 
-func NewStore(db *pgxpool.Pool) *Store {
-	return &Store{
-		db:      db,
-		Queries: New(db),
-	}
+func NewStore() Store {
+	return &SQLStore{}
 }
 
-func (s *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (s *SQLStore) Connect(ctx context.Context, dbSource string) error {
+	config, err := pgxpool.ParseConfig(dbSource)
+	if err != nil {
+		return fmt.Errorf("can not parse config %v", err)
+	}
+
+	config.MaxConns = 5
+	config.MaxConnLifetime = 30 * time.Minute
+	config.MaxConnIdleTime = 5 * time.Minute
+
+	connPool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return fmt.Errorf("can not connect to db %v", err)
+	}
+
+	s.db = connPool
+	s.Queries = New(connPool)
+
+	return nil
+}
+
+func (s *SQLStore) Close() {
+	s.db.Close()
+}
+
+func (s *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -52,7 +82,7 @@ type TransferTxResult struct {
 	ToEntry     Entry    `json:"to_entry"`
 }
 
-func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (s *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := s.execTx(ctx, func(q *Queries) error {

@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/vlone310/bss/util"
+	"github.com/vlone310/bss/testutil"
 )
 
 func createRandomAccount(t *testing.T) Account {
 	t.Helper()
 
 	arg := CreateAccountParams{
-		Owner:    util.RandomOwner(),
-		Balance:  util.RandomMoney(),
-		Currency: util.RandomCurrency(),
+		Owner:    testutil.RandomOwner(),
+		Balance:  testutil.RandomMoney(),
+		Currency: testutil.RandomCurrency(),
 	}
 
 	account, err := testStore.CreateAccount(context.Background(), arg)
@@ -55,7 +55,7 @@ func TestUpdateAccount(t *testing.T) {
 
 	arg := UpdateAccountParams{
 		ID:      account1.ID,
-		Balance: util.RandomMoney(),
+		Balance: testutil.RandomMoney(),
 	}
 
 	account2, err := testStore.UpdateAccount(context.Background(), arg)

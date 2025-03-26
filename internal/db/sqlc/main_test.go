@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 
@@ -19,8 +18,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-var testStore *Store
-var testDB *pgxpool.Pool
+var testStore Store
 var container testcontainers.Container
 
 var dbName = "test_db"
@@ -58,22 +56,8 @@ func TestMain(m *testing.M) {
 
 	dbSource := fmt.Sprintf("postgresql://test:test@%s:%s/test_db?sslmode=disable", host, port.Port())
 
-	config, err := pgxpool.ParseConfig(dbSource)
-	if err != nil {
-		log.Fatalf("can not parse config %v", err)
-	}
-
-	config.MaxConns = 5
-	config.MaxConnLifetime = 30 * time.Minute
-	config.MaxConnIdleTime = 5 * time.Minute
-
-	connPool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		log.Fatalf("can not connect to db %v", err)
-	}
-
-	testDB = connPool
-	testStore = NewStore(connPool)
+	testStore = NewStore()
+	testStore.Connect(ctx, dbSource)
 
 	runDBMigration(dbSource)
 
@@ -88,8 +72,8 @@ func TestMain(m *testing.M) {
 
 func cleanup(ctx context.Context) error {
 	// Close database connection
-	if testDB != nil {
-		testDB.Close()
+	if testStore != nil {
+		testStore.Close()
 	}
 
 	// Terminate container
