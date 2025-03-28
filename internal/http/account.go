@@ -7,15 +7,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	db "github.com/vlone310/bss/internal/db/sqlc"
 )
 
-var errInvalidID = errors.New("invalid id parameter")
 var errAccountNotFound = errors.New("account not found")
+var errAccountExists = errors.New("account already exists")
+var errUserNotFound = errors.New("user not found")
+var _ = time.Second
 
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required,min=3,max=20"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR CAD"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 type accountResponse struct {
@@ -39,8 +42,18 @@ func (s *Server) createAccount(c *gin.Context) {
 		Currency: req.Currency,
 	}
 
-	account, err := s.store.CreateAccount(c.Request.Context(), arg)
+	account, err := s.store.CreateAccount(c, arg)
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case "23505":
+				c.JSON(http.StatusForbidden, errorResponse(errAccountExists))
+				return
+			case "23503":
+				c.JSON(http.StatusForbidden, errorResponse(errUserNotFound))
+				return
+			}
+		}
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -67,7 +80,7 @@ func (s *Server) getAccountByID(c *gin.Context) {
 		return
 	}
 
-	account, err := s.store.GetAccount(c.Request.Context(), req.ID)
+	account, err := s.store.GetAccount(c, req.ID)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -106,7 +119,7 @@ func (s *Server) listAccounts(c *gin.Context) {
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	accounts, err := s.store.ListAccounts(c.Request.Context(), arg)
+	accounts, err := s.store.ListAccounts(c, arg)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
