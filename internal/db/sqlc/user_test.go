@@ -7,14 +7,18 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/vlone310/bss/testutil"
+	"github.com/vlone310/bss/util"
 )
 
 func createRandomUser(t *testing.T) User {
 	t.Helper()
 
+	hashedPassword, err := util.HashPassword(testutil.RandomString(6))
+	require.NoError(t, err)
+
 	arg := CreateUserParams{
 		Username:       testutil.RandomOwner(),
-		HashedPassword: "secret",
+		HashedPassword: hashedPassword,
 		FullName:       testutil.RandomOwner(),
 		Email:          testutil.RandomEmail(),
 	}

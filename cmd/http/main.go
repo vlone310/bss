@@ -6,7 +6,7 @@ import (
 
 	"github.com/vlone310/bss/config"
 	db "github.com/vlone310/bss/internal/db/sqlc"
-	httpsrv "github.com/vlone310/bss/internal/http"
+	"github.com/vlone310/bss/internal/http"
 )
 
 func main() {
@@ -18,6 +18,6 @@ func main() {
 	s.Connect(ctx, config.DBSource)
 	defer s.Close()
 
-	srv := httpsrv.NewServer(s)
+	srv := http.NewServer(s)
 	log.Fatal(srv.ServeHTTP(config.ServerAddr))
 }

@@ -1,4 +1,4 @@
-package httpsrv
+package http
 
 import (
 	"errors"
@@ -14,7 +14,6 @@ import (
 var errAccountNotFound = errors.New("account not found")
 var errAccountExists = errors.New("account already exists")
 var errUserNotFound = errors.New("user not found")
-var _ = time.Second
 
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required,min=3,max=20"`
